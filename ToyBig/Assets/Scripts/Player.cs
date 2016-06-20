@@ -6,10 +6,13 @@ public class Player : MonoBehaviour
 {
 	public PlayerMovimentManager movimentManager;
 	public CustomCollider playerCollider;
+
+
 	//Move Tween Info
 	public GameObject playerGO;
 	public bool isMoving = false;
 	public float moveTweenCount = 0f;
+
 	//Arrow Rot Tween Info
 	public GameObject arrowGO;
 	public bool isRotating = false;
@@ -17,7 +20,12 @@ public class Player : MonoBehaviour
 	public Quaternion arrowStartRotation;
 	public Quaternion arrowEndRotation;
 
+	public bool actionBuffer = false;
 	public bool idleBuffer = false;
+	public bool jumpBuffer = false;
+
+	//Items Info
+	public GameObject playerHand;
 
 	public PlayerDirection	playerDirection = PlayerDirection.UP;
 	public enum PlayerDirection
@@ -27,40 +35,64 @@ public class Player : MonoBehaviour
 		DOWN,
 		RIGHT
 	}
-	public PlayerStatus status = PlayerStatus.MOVING;
+	public PlayerStatus status = PlayerStatus.WALKING;
 	public enum PlayerStatus
 	{
-		MOVING,
+		WALKING,
+		JUMPING,
 		IDLE,
-		ROTATING,
-		ROTATING_BUFFER
+		IDLE_BUFFER,
+		ACTION,
+		FALLING
 	}
-	public NextTile currentTile = NextTile.GROUND;
-	public NextTile nextTile = NextTile.GROUND;
-	public enum NextTile
+	public ActionStatus actionStatus = ActionStatus.NOTHING;
+	public enum ActionStatus
 	{
 		NOTHING,
-		GROUND,
-		STAIR_DOWN,
-		STAIR_UP,
-		WALL
+		CLIMBING_UP_LADDER,
+		THROWING_SWORD,
+		PLACING_DYNAMITE
+	}
+
+	public ItemStatus itemStatus = ItemStatus.NOTHING;
+	public enum ItemStatus
+	{
+		NOTHING,
+		SWORD,
+		DYNAMITE
 	}
 	void Start()
 	{
+		arrowGO.transform.localRotation = Quaternion.Euler(new Vector3(0f, (int)playerDirection * -90f - 180f,0f));
 		playerCollider.onCollisionEnter += (CustomCollider arg1, Collision arg2) => 
 		{
 			if (arg2.gameObject.name.StartsWith ("Enemy"))
 				SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+			else if (arg2.gameObject.tag == "Sword")
+			{
+				if (playerHand.transform.childCount == 0)
+				{
+					arg2.gameObject.GetComponent<Sword>().SetSwordParent(playerHand.transform);
+					itemStatus = ItemStatus.SWORD;
+					jumpBuffer = false;
+					actionBuffer = false;
+				}
+			}
 		};
 	}
 	void Update () 
 	{
+		if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Q))
+			SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+		
 		if (Input.GetMouseButtonDown (1))
 			RightButtonPressed ();
+		else if (Input.GetMouseButtonDown (0))
+			LeftButtonPressed ();
 		else if (Input.GetMouseButton (1))
 			RightButtonDown ();
-		else if (!Input.GetMouseButton (1) && status == PlayerStatus.IDLE)
-			idleBuffer = false;
+
+
 		if (isMoving) 
 			UpdatePlayerPosition ();
 		else if (isRotating) 
@@ -68,117 +100,107 @@ public class Player : MonoBehaviour
 	}
 	public void RightButtonDown()
 	{
-		if (status == PlayerStatus.MOVING || status == PlayerStatus.IDLE) 
-			idleBuffer = true;
+		idleBuffer = true;
+	}
+
+	public void LeftButtonPressed()
+	{
+		if (actionStatus != ActionStatus.NOTHING && actionBuffer)
+			return;
+
+		if (itemStatus == ItemStatus.SWORD) 
+		{
+			actionBuffer = true;
+			actionStatus = ActionStatus.THROWING_SWORD;
+			return;
+		}
+
+		Collider[] __collisions;
+		__collisions = Physics.OverlapSphere (playerGO.transform.localPosition + (PlayerDirNormalized() * 0.5f)
+			+ (Vector3.up * 0.5f), 0.1f);
+		if (__collisions.Length > 0) 
+		{
+			if (PlayerMovimentManager.HasColliderWithTag (__collisions, "Ladder")) 
+			{
+				actionBuffer = true;
+				actionStatus = ActionStatus.CLIMBING_UP_LADDER;
+				return;
+			}
+		}
+		jumpBuffer = true;
 	}
 	public void RightButtonPressed()
 	{
-		if (status == PlayerStatus.MOVING) 
-		{
+		if (status == PlayerStatus.WALKING) 
 			idleBuffer = true;
-			return;
-		} 
-		else if (status == PlayerStatus.IDLE) 
+		else if (status == PlayerStatus.IDLE_BUFFER) 
 		{
-			rotTweenCount = 0f;
-			IncreaseArrowRotation ();
-		}
-		else if (status == PlayerStatus.ROTATING && rotTweenCount >= 0.75f) 
-		{
-			IncreaseArrowRotation ();
+			if (!isRotating) 
+			{
+				idleBuffer = true;
+				rotTweenCount = 0f;
+				IncreaseArrowRotation ();
+			}
 		}
 	}
 	private void IncreaseArrowRotation()
 	{
-		if (status == PlayerStatus.IDLE)
-			status = PlayerStatus.ROTATING;
-		else if (status == PlayerStatus.ROTATING)
-			status = PlayerStatus.ROTATING_BUFFER;
-		
-		idleBuffer = true;
+		isRotating = true;
 		playerDirection += 1;
 		if ((int)playerDirection == 4)
 			playerDirection -= 4;
+		SetPlayerArrow ();
 	}
 	private void UpdatePlayerPosition()
 	{
 		moveTweenCount += Time.deltaTime * GameSceneManager.gameSpeed;
-		movimentManager.UpdatePlayerPosition (moveTweenCount);
+		if (status == PlayerStatus.JUMPING)
+			movimentManager.UpdateJumpPosition(moveTweenCount);
+		else if (status == PlayerStatus.WALKING)
+			movimentManager.UpdatePlayerPosition (moveTweenCount);
+		else if (status == PlayerStatus.ACTION) 
+		{
+			if (actionStatus == ActionStatus.CLIMBING_UP_LADDER)
+				movimentManager.UpdatePlayerPosition(moveTweenCount);
+		}
 		if (moveTweenCount >= 1f) 
 			isMoving = false;
 	}
 	private void UpdateArrowRotation()
 	{
-		rotTweenCount += Time.deltaTime * GameSceneManager.gameSpeed;
+		rotTweenCount += Time.deltaTime * GameSceneManager.gameSpeed * 3f;
 		arrowGO.transform.localRotation = Quaternion.Lerp (arrowStartRotation, arrowEndRotation, rotTweenCount);
-		if (rotTweenCount >= 1f) 
-		{
+		if (rotTweenCount >= 1f)
 			isRotating = false;
-			if (status == PlayerStatus.ROTATING)
-				status = PlayerStatus.IDLE;
-			else if (status == PlayerStatus.ROTATING_BUFFER) 
-			{
-				rotTweenCount = 0f;
-				status = PlayerStatus.ROTATING;
-			}
-		}
 	}
 	private void SetPlayerArrow()
 	{
-		isRotating = true;
 		rotTweenCount = 0f;
 		arrowStartRotation = arrowGO.transform.localRotation;
 		arrowEndRotation = Quaternion.Euler(new Vector3(0f, (int)playerDirection * -90f - 180f,0f));
 	}
+	private void SetPlayerJump()
+	{
+		isMoving = true;
+		moveTweenCount = 0f;
+		Vector3 playerTargetPosition = playerGO.transform.localPosition + PlayerDirNormalized ();
+		movimentManager.positions = new List<MovimentPosition> ();
+		movimentManager.positions.Add (new MovimentPosition (playerGO.transform.localPosition,0f));
+		movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + Vector3.up,0f));
+		movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + PlayerDirNormalized (),0f));
+	}
 	public void SetPlayerDestination()
 	{
-		Vector3 playerTargetPosition = playerGO.transform.localPosition + PlayerDirNormalized ();
-		CheckNextTile();
-		movimentManager.positions = new List<MovimentPosition> ();
-		if (nextTile != NextTile.NOTHING) 
+		movimentManager.CalcPlayerPath (PlayerDirNormalized());
+		if (movimentManager.nextTile == PlayerMovimentManager.NextTile.NOTHING) 
+		{
+			idleBuffer = true;
+			status = PlayerStatus.IDLE_BUFFER;
+		} 
+		else 
 		{
 			isMoving = true;
 			moveTweenCount = 0f;
-			movimentManager.positions.Add (new MovimentPosition (playerGO.transform.localPosition,0f));
-			if (nextTile == NextTile.GROUND) 
-			{
-				if (currentTile == NextTile.GROUND) 
-					movimentManager.positions.Add (new MovimentPosition (playerTargetPosition,1f));
-				else if (currentTile == NextTile.STAIR_UP) 
-				{
-					movimentManager.positions.Add (new MovimentPosition (playerGO.transform.localPosition 
-						+ Vector3.up * 0.5f + PlayerDirNormalized() * 0.5f,0.5f));
-					movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + Vector3.up * 0.5f,1f));
-				}
-				else if (currentTile == NextTile.STAIR_DOWN) 
-				{
-					movimentManager.positions.Add (new MovimentPosition (playerGO.transform.localPosition 
-						+ Vector3.down * 0.5f + PlayerDirNormalized() * 0.5f,0.5f));
-					movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + Vector3.down * 0.5f,1f));
-				}
-			} 
-			else if (nextTile == NextTile.STAIR_DOWN) 
-			{
-				if (currentTile == NextTile.GROUND)
-				{
-					movimentManager.positions.Add (new MovimentPosition (playerGO.transform.localPosition + PlayerDirNormalized () * 0.5f,0.5f));
-					movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + Vector3.down * 0.5f,1f));
-				}
-				else if (currentTile == NextTile.STAIR_DOWN)
-					movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + Vector3.down,1f));
-
-			}
-			else if (nextTile == NextTile.STAIR_UP)
-			{
-				if (currentTile == NextTile.GROUND)
-				{
-					movimentManager.positions.Add (new MovimentPosition (playerGO.transform.localPosition + PlayerDirNormalized () * 0.5f,0.5f));
-					movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + Vector3.up * 0.5f,1f));
-				}
-				else if (currentTile == NextTile.STAIR_UP)
-					movimentManager.positions.Add (new MovimentPosition (playerTargetPosition + Vector3.up,1f));
-
-			}
 		}
 	}
 	public Vector3 PlayerDirNormalized()
@@ -186,102 +208,74 @@ public class Player : MonoBehaviour
 		return new Vector3 (Mathf.Sin ((int)playerDirection * -90f * Mathf.Deg2Rad),
 			0f, Mathf.Cos ((int)playerDirection * 90f * Mathf.Deg2Rad));
 	}
-	public void CheckNextTile()
-	{
-		currentTile = nextTile;
-		Vector3 playerTargetPosition = playerGO.transform.localPosition + PlayerDirNormalized();
-		Collider[] __collisions;
 
-		if (currentTile == NextTile.STAIR_DOWN)
-		{
-			__collisions = Physics.OverlapSphere (playerTargetPosition - (Vector3.up * 1.5f), 0.2f);
-			if (__collisions.Length > 0 && __collisions [0].name.StartsWith ("P_Ladder")) 
-			{
-				nextTile = NextTile.STAIR_DOWN;
-				return;
-			}
-		}
-		if (currentTile == NextTile.STAIR_UP)
-		{
-			__collisions = Physics.OverlapSphere (playerTargetPosition + (Vector3.up * 1.5f), 0.2f);
-			if (__collisions.Length > 0 && __collisions [0].name.StartsWith ("P_Ladder")) 
-			{
-				Debug.Log ("here");
-				nextTile = NextTile.STAIR_UP;
-				return;
-			}
-
-		}
-		__collisions = Physics.OverlapSphere (playerTargetPosition + (Vector3.up * 0.5f), 0.2f);
-		if (__collisions.Length > 0) 
-		{
-			if (__collisions [0].name.StartsWith ("P_Ladder")) 
-			{
-				nextTile = NextTile.STAIR_UP;
-				return;
-			}
-			else if (__collisions [0].name.StartsWith ("P_Small") || __collisions [0].name.StartsWith ("P_Big")
-				|| __collisions [0].name.StartsWith ("Enemy")) 
-			{
-				nextTile = NextTile.GROUND;
-				return;
-			}
-			else
-			{
-				nextTile = NextTile.WALL;
-				return;
-			}
-		}
-		__collisions = Physics.OverlapSphere (playerTargetPosition - (Vector3.up * 0.5f), 0.2f);
-		if (__collisions.Length > 0) 
-		{
-			if (__collisions [0].name.StartsWith ("P_Small") 
-				|| __collisions [0].name.StartsWith ("P_Big")) 
-			{
-				nextTile = NextTile.GROUND;
-				return;
-			}
-			else if (__collisions [0].name.StartsWith ("P_Ladder")) 
-			{
-				nextTile = NextTile.STAIR_DOWN;
-				return;
-			}
-			else
-			{
-				nextTile = NextTile.WALL;
-				return;
-			}
-		}
-		else
-			nextTile = NextTile.NOTHING;
-			
-	}
 	public void PlayTurn()
 	{
-		
-		if (status == PlayerStatus.MOVING)
+		if (actionBuffer || status == PlayerStatus.ACTION) 
 		{
-			if (idleBuffer) 
-			{
-				status = PlayerStatus.IDLE;
-				idleBuffer = false;
-			}
-			else
-				SetPlayerDestination ();
+			status = PlayerStatus.ACTION;
+			SetAction ();
 		}
+		if (jumpBuffer) 
+		{
+			status = PlayerStatus.JUMPING;
+			idleBuffer = false;
+			jumpBuffer = false;
+			SetPlayerJump();
+			return;
+		}
+		if (idleBuffer) 
+		{
+			status = PlayerStatus.IDLE_BUFFER;
+			idleBuffer = false;
+			return;
+		}
+
+		if (status == PlayerStatus.WALKING)
+		{
+			SetPlayerDestination ();
+		}
+		else if (status == PlayerStatus.JUMPING)
+		{
+			status = PlayerStatus.IDLE;
+			idleBuffer = false;
+			jumpBuffer = false;
+		}	
 		else if (status == PlayerStatus.IDLE)
 		{
-			if (idleBuffer)
-				idleBuffer = false;
-			else 
-			{
-				status = PlayerStatus.MOVING;
-				SetPlayerDestination ();
-			}
+			status = PlayerStatus.WALKING;
+			SetPlayerDestination ();
 		}
-		else if (status == PlayerStatus.ROTATING)
-			SetPlayerArrow ();
-		else if (status == PlayerStatus.ROTATING_BUFFER)
-			SetPlayerArrow ();
+		else if (status == PlayerStatus.IDLE_BUFFER)
+		{
+			status = PlayerStatus.IDLE;
+		}
+	}
+	public void SetAction()
+	{
+		if (!actionBuffer) 
+		{
+			if (actionStatus == ActionStatus.CLIMBING_UP_LADDER)
+				status = PlayerStatus.IDLE;
+			else if (actionStatus == ActionStatus.THROWING_SWORD) 
+			{
+				status = PlayerStatus.IDLE;
+				itemStatus = ItemStatus.NOTHING;
+			}
+			actionStatus = ActionStatus.NOTHING;
+			return;
+		}
+		actionBuffer = false;
+		if (actionStatus == ActionStatus.CLIMBING_UP_LADDER) 
+		{
+			isMoving = true;
+			moveTweenCount = 0f;
+			movimentManager.CalcPlayerClimbUpLadder (PlayerDirNormalized());
+		}
+		else if (actionStatus == ActionStatus.THROWING_SWORD) 
+		{
+			playerHand.transform.GetChild (0).GetComponent<Sword> ().ThrowSword (playerDirection);
+			itemStatus = ItemStatus.NOTHING;
+		}
 	}
 }
