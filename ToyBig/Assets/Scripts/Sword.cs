@@ -65,7 +65,7 @@ public class Sword : MonoBehaviour
 		swordGO.transform.localPosition = new Vector3 (Mathf.Round (p_enemyPosition.x), 
 			Mathf.Floor (p_enemyPosition.y), Mathf.Round (p_enemyPosition.z));
 	}
-	public void SetSwordParent(Transform p_playerHand)
+	public void PlaceSwordOnPlayerHand(Transform p_playerHand)
 	{
 		swordGO.transform.parent = p_playerHand;
 		swordGO.transform.localPosition = Vector3.zero;

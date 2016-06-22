@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -11,8 +12,11 @@ public class GameSceneManager : MonoBehaviour
 	public List<Enemy> enemies;
 	public List<MovingPlatform> platforms;
 	public List<Sword> swords;
+	public List<Dynamite> dynamites;
+	public List<Wall> walls;
 
 	public GameObject swordsContainer;
+	public GameObject dynamitesContainer;
 	public float turnCount = 0f;
 
 	void Start () 
@@ -32,6 +36,22 @@ public class GameSceneManager : MonoBehaviour
 				Debug.Log("Leave World");
 				swords.Remove(p_sword);
 				Destroy(p_sword.gameObject);
+			};
+		}
+		foreach (Dynamite __dyn in dynamites) 
+		{
+			__dyn.dynamitesContainer = dynamitesContainer;
+			__dyn.OnDynamiteExplosionHitPlayer += (Dynamite obj) =>
+				SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+			__dyn.OnDynamiteExplosionHitWall += (Dynamite arg1, Wall arg2) =>
+			{
+				walls.Remove(arg2);
+				Destroy(arg2.gameObject);
+			};
+			__dyn.OnDynamiteExploded += (Dynamite obj) => 
+			{
+				dynamites.Remove(obj);
+				Destroy(obj.gameObject);
 			};
 		}
 	}

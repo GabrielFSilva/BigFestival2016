@@ -7,7 +7,6 @@ public class PlayerMovimentManager : MonoBehaviour
 	public GameObject playerGO;
 	public List<MovimentPosition> positions;
 
-
 	public NextTile currentTile = NextTile.GROUND;
 	public NextTile nextTile = NextTile.GROUND;
 	public enum NextTile
@@ -158,13 +157,16 @@ public class PlayerMovimentManager : MonoBehaviour
 				nextTile = NextTile.STAIR_UP;
 				return;
 			}
-			else if (__collisions [0].name.StartsWith ("Enemy") || HasColliderWithTag(__collisions, "Sword")) 
+			//Continue if Finds Item or Enemy
+			else if (__collisions [0].name.StartsWith ("Enemy") || HasColliderWithTag(__collisions, "Sword")
+				|| HasColliderWithTag(__collisions, "Dynamite")) 
 			{
 				nextTile = NextTile.GROUND;
 				return;
 			}
 			else if (HasColliderWithNameStart(__collisions,"P_Small") 
-				|| HasColliderWithNameStart(__collisions,"P_Big")) 
+				|| HasColliderWithNameStart(__collisions,"P_Big")
+				|| HasColliderWithTag(__collisions,"Elevator")) 
 			{
 				nextTile = NextTile.GROUND;
 				return;
@@ -181,7 +183,8 @@ public class PlayerMovimentManager : MonoBehaviour
 		{
 			
 			if (HasColliderWithNameStart(__collisions,"P_Small") 
-				|| HasColliderWithNameStart(__collisions,"P_Big")) 
+				|| HasColliderWithNameStart(__collisions,"P_Big")
+				|| HasColliderWithTag(__collisions,"Elevator")) 
 			{
 				nextTile = NextTile.GROUND;
 				return;
@@ -196,6 +199,13 @@ public class PlayerMovimentManager : MonoBehaviour
 				nextTile = NextTile.WALL;
 				return;
 			}
+		}
+		__collisions = Physics.OverlapSphere (playerGO.transform.localPosition + (p_playerDir * 0.5f)
+			- (Vector3.up * 0.5f), 0.1f);
+		if (HasColliderWithTag(__collisions,"Ladder")) 
+		{
+			nextTile = NextTile.LADDER_DOWN;
+			return;
 		}
 		else
 			nextTile = NextTile.NOTHING;

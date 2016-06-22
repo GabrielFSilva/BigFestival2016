@@ -12,6 +12,7 @@ public class Player : MonoBehaviour
 	public GameObject playerGO;
 	public bool isMoving = false;
 	public float moveTweenCount = 0f;
+	public Elevator elevatorGO;
 
 	//Arrow Rot Tween Info
 	public GameObject arrowGO;
@@ -43,6 +44,7 @@ public class Player : MonoBehaviour
 		IDLE,
 		IDLE_BUFFER,
 		ACTION,
+		TAKING_ELEVATOR,
 		FALLING
 	}
 	public ActionStatus actionStatus = ActionStatus.NOTHING;
@@ -72,8 +74,18 @@ public class Player : MonoBehaviour
 			{
 				if (playerHand.transform.childCount == 0)
 				{
-					arg2.gameObject.GetComponent<Sword>().SetSwordParent(playerHand.transform);
+					arg2.gameObject.GetComponent<Sword>().PlaceSwordOnPlayerHand(playerHand.transform);
 					itemStatus = ItemStatus.SWORD;
+					jumpBuffer = false;
+					actionBuffer = false;
+				}
+			}
+			else if (arg2.gameObject.tag == "Dynamite")
+			{
+				if (playerHand.transform.childCount == 0)
+				{
+					arg2.gameObject.GetComponent<Dynamite>().PlaceynamiteOnPlayerHand(playerHand.transform);
+					itemStatus = ItemStatus.DYNAMITE;
 					jumpBuffer = false;
 					actionBuffer = false;
 				}
@@ -92,8 +104,13 @@ public class Player : MonoBehaviour
 		else if (Input.GetMouseButton (1))
 			RightButtonDown ();
 
-
-		if (isMoving) 
+		if (status == PlayerStatus.TAKING_ELEVATOR) 
+		{
+			playerGO.transform.position = elevatorGO.transform.position + (Vector3.up * 2f);
+			if (elevatorGO.isMoving == false)
+				status = PlayerStatus.IDLE_BUFFER;
+		}
+		else if (isMoving) 
 			UpdatePlayerPosition ();
 		else if (isRotating) 
 			UpdateArrowRotation ();
@@ -107,14 +124,7 @@ public class Player : MonoBehaviour
 	{
 		if (actionStatus != ActionStatus.NOTHING && actionBuffer)
 			return;
-
-		if (itemStatus == ItemStatus.SWORD) 
-		{
-			actionBuffer = true;
-			actionStatus = ActionStatus.THROWING_SWORD;
-			return;
-		}
-
+		
 		Collider[] __collisions;
 		__collisions = Physics.OverlapSphere (playerGO.transform.localPosition + (PlayerDirNormalized() * 0.5f)
 			+ (Vector3.up * 0.5f), 0.1f);
@@ -126,6 +136,18 @@ public class Player : MonoBehaviour
 				actionStatus = ActionStatus.CLIMBING_UP_LADDER;
 				return;
 			}
+		}
+		if (itemStatus == ItemStatus.SWORD) 
+		{
+			actionBuffer = true;
+			actionStatus = ActionStatus.THROWING_SWORD;
+			return;
+		}
+		if (itemStatus == ItemStatus.DYNAMITE) 
+		{
+			actionBuffer = true;
+			actionStatus = ActionStatus.PLACING_DYNAMITE;
+			return;
 		}
 		jumpBuffer = true;
 	}
@@ -164,7 +186,26 @@ public class Player : MonoBehaviour
 				movimentManager.UpdatePlayerPosition(moveTweenCount);
 		}
 		if (moveTweenCount >= 1f) 
+		{
 			isMoving = false;
+			if (status == PlayerStatus.JUMPING)
+				CheckElevatorButtons ();
+		}
+	}
+	private void CheckElevatorButtons()
+	{
+		Collider[] __collisions;
+		__collisions = Physics.OverlapSphere (playerGO.transform.localPosition, 0.1f);
+
+		foreach (Collider __coll in __collisions)
+			if (__coll.tag == "ElevatorButton")
+				__coll.GetComponent<ElevatorButton> ().SetElevatorMoving ();
+		foreach (Collider __coll in __collisions)
+			if (__coll.tag == "Elevator") 
+			{
+				elevatorGO = __coll.GetComponent<Elevator>();
+				status = PlayerStatus.TAKING_ELEVATOR;
+			}
 	}
 	private void UpdateArrowRotation()
 	{
@@ -211,10 +252,13 @@ public class Player : MonoBehaviour
 
 	public void PlayTurn()
 	{
+		if (status == PlayerStatus.TAKING_ELEVATOR)
+			return;
 		if (actionBuffer || status == PlayerStatus.ACTION) 
 		{
 			status = PlayerStatus.ACTION;
 			SetAction ();
+			return;
 		}
 		if (jumpBuffer) 
 		{
@@ -255,9 +299,17 @@ public class Player : MonoBehaviour
 	{
 		if (!actionBuffer) 
 		{
-			if (actionStatus == ActionStatus.CLIMBING_UP_LADDER)
-				status = PlayerStatus.IDLE;
+			if (actionStatus == ActionStatus.CLIMBING_UP_LADDER) 
+			{
+				status = PlayerStatus.WALKING;
+				idleBuffer = false;
+			}
 			else if (actionStatus == ActionStatus.THROWING_SWORD) 
+			{
+				status = PlayerStatus.IDLE;
+				itemStatus = ItemStatus.NOTHING;
+			}
+			else if (actionStatus == ActionStatus.PLACING_DYNAMITE) 
 			{
 				status = PlayerStatus.IDLE;
 				itemStatus = ItemStatus.NOTHING;
@@ -275,6 +327,12 @@ public class Player : MonoBehaviour
 		else if (actionStatus == ActionStatus.THROWING_SWORD) 
 		{
 			playerHand.transform.GetChild (0).GetComponent<Sword> ().ThrowSword (playerDirection);
+			itemStatus = ItemStatus.NOTHING;
+		}
+		else if (actionStatus == ActionStatus.PLACING_DYNAMITE) 
+		{
+			playerHand.transform.GetChild (0).GetComponent<Dynamite> ().
+				PlaceDynamiteOnGround (playerGO.transform.localPosition + PlayerDirNormalized());
 			itemStatus = ItemStatus.NOTHING;
 		}
 	}
