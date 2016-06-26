@@ -140,6 +140,7 @@ public class Player : MonoBehaviour
 			playerGO.transform.position = p_coll.transform.position + (Vector3.up * 0.5f);
 			status = PlayerStatus.IDLE;
 			idleBuffer = false;
+			jumpBuffer = false;
 			movManager.nextTile = PlayerMovimentManager.NextTile.STAIR_DOWN;
 		}
 		else if (p_coll.gameObject.tag == "Elevator")
@@ -147,6 +148,7 @@ public class Player : MonoBehaviour
 			playerGO.transform.position = p_coll.transform.position + (Vector3.one * 2.0f);
 			status = PlayerStatus.IDLE_BUFFER;
 			idleBuffer = true;
+			jumpBuffer = false;
 			movManager.nextTile = PlayerMovimentManager.NextTile.GROUND;
 		}
 		else
@@ -154,6 +156,7 @@ public class Player : MonoBehaviour
 			playerGO.transform.position = p_coll.transform.position;
 			status = PlayerStatus.IDLE_BUFFER;
 			idleBuffer = true;
+			jumpBuffer = false;
 			movManager.nextTile = PlayerMovimentManager.NextTile.GROUND;
 		}
 		CheckElevatorButtons ();

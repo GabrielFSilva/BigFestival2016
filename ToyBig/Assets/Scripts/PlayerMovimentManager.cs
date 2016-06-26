@@ -211,8 +211,22 @@ public class PlayerMovimentManager : MonoBehaviour
 				nextTile = NextTile.STAIR_DOWN;
 				return;
 			}
-			if (HasWallInPosition(playerTargetPosition, 0.2f));
+			if (HasStairInPosition (playerTargetPosition + Vector3.up, 0.1f)) 
 			{
+				currentTile = NextTile.STAIR_UP;
+				nextTile = NextTile.STAIR_UP;
+				return;
+			}
+			if (!HasWallInPosition(playerTargetPosition, 0.05f))
+			{
+				Debug.Log ("down");
+				currentTile = NextTile.STAIR_DOWN;
+				nextTile = NextTile.GROUND;
+				return;
+			}
+			if (HasWallInPosition(playerTargetPosition, 0.05f));
+			{
+				Debug.Log ("up");
 				currentTile = NextTile.STAIR_UP;
 				nextTile = NextTile.GROUND;
 				return;
@@ -235,7 +249,8 @@ public class PlayerMovimentManager : MonoBehaviour
 				nextTile = NextTile.STAIR_DOWN;
 				return;
 			}
-			if (HasWallInPosition(playerTargetPosition + (Vector3.up * -1.0f), 0.2f)) 
+			if (HasWallInPosition(playerTargetPosition + (Vector3.up * -1.0f), 0.2f)
+				&& !HasWallInPosition(playerTargetPosition, 0.2f)) 
 			{
 				Debug.Log ("Here3");
 				currentTile = NextTile.STAIR_DOWN;
