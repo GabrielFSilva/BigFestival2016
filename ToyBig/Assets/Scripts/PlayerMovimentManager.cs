@@ -224,7 +224,7 @@ public class PlayerMovimentManager : MonoBehaviour
 				nextTile = NextTile.GROUND;
 				return;
 			}
-			if (HasWallInPosition(playerTargetPosition, 0.05f));
+			else
 			{
 				Debug.Log ("up");
 				currentTile = NextTile.STAIR_UP;

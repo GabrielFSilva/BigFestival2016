@@ -153,6 +153,7 @@ public class Player : MonoBehaviour
 		}
 		else
 		{
+			Debug.Log (p_coll.transform.name);
 			playerGO.transform.position = p_coll.transform.position;
 			status = PlayerStatus.IDLE_BUFFER;
 			idleBuffer = true;

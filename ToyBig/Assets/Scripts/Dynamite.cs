@@ -9,13 +9,14 @@ public class Dynamite : MonoBehaviour
 	public event Action <Dynamite> OnDynamiteExploded;
 	public GameObject dynamitesContainer;
 	public GameObject dynamiteGO;
-
+	public BoxCollider dynamiteCollider;
 	public bool isCounting = false;
 	public float explosionTimerCount = 0f;
 	public float explosionTimer = 7f;
 	// Use this for initialization
 	void Start () 
 	{
+		dynamiteCollider = GetComponent<BoxCollider> ();
 		explosionTimer = 7f;
 		if (dynamiteGO == null)
 			dynamiteGO = gameObject;
@@ -47,6 +48,7 @@ public class Dynamite : MonoBehaviour
 
 	public void PlaceynamiteOnPlayerHand(Transform p_playerHand)
 	{
+		dynamiteCollider.enabled = false;
 		isCounting = false;
 		dynamiteGO.transform.parent = p_playerHand;
 		dynamiteGO.transform.rotation = Quaternion.identity;
@@ -61,6 +63,7 @@ public class Dynamite : MonoBehaviour
 		if (PlayerMovimentManager.HasColliderWithNameStart (__collisions, "P_Small")
 		    || PlayerMovimentManager.HasColliderWithNameStart (__collisions, "P_Big")) 
 		{
+			dynamiteCollider.enabled = true;
 			dynamiteGO.transform.parent = dynamitesContainer.transform;
 			dynamiteGO.transform.rotation = Quaternion.identity;
 			dynamiteGO.transform.localScale = Vector3.one;

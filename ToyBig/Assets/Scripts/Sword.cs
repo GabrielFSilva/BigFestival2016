@@ -8,6 +8,7 @@ public class Sword : MonoBehaviour
 	public event Action <Sword, Enemy> OnSwordHitEnemy;
 	public GameObject swordsContainer;
 	public GameObject swordGO;
+	public BoxCollider swordCollider;
 
 	public Vector3 direction;
 	public float swordSpeed = 4f;
@@ -24,6 +25,7 @@ public class Sword : MonoBehaviour
 	{
 		if (swordGO == null)
 			swordGO = gameObject;
+		swordCollider = swordGO.GetComponent<BoxCollider> ();
 	}
 	void Update ()
 	{
@@ -65,6 +67,7 @@ public class Sword : MonoBehaviour
 		else
 		{
 			swordState = SwordState.IDLE;
+			swordCollider.enabled = true;
 			swordGO.transform.localRotation = Quaternion.identity;
 			if (p_collision.gameObject.tag == "Stair")
 				swordGO.transform.localPosition = p_collision.transform.position + (Vector3.up * 0.6f);
@@ -75,6 +78,7 @@ public class Sword : MonoBehaviour
 	public void DropSword(GameObject p_hit)
 	{
 		swordState = SwordState.IDLE;
+		swordCollider.enabled = true;
 		swordGO.transform.localRotation = Quaternion.identity;
 		Vector3 __tempPos = swordGO.transform.localPosition - (direction * swordSpeed * Time.deltaTime);
 		swordGO.transform.localPosition = new Vector3 (Mathf.Round (__tempPos.x), 
@@ -89,6 +93,7 @@ public class Sword : MonoBehaviour
 	public void DropSword(Vector3 p_enemyPosition)
 	{
 		swordState = SwordState.IDLE;
+		swordCollider.enabled = true;
 		swordGO.transform.localRotation = Quaternion.identity;
 		swordGO.transform.localPosition = new Vector3 (Mathf.Round (p_enemyPosition.x), 
 			Mathf.Floor (p_enemyPosition.y), Mathf.Round (p_enemyPosition.z));
@@ -96,6 +101,7 @@ public class Sword : MonoBehaviour
 	public void PlaceSwordOnPlayerHand(Transform p_playerHand)
 	{
 		swordState = SwordState.ON_HOLD;
+		swordCollider.enabled = false;
 		swordGO.transform.parent = p_playerHand;
 		swordGO.transform.localPosition = Vector3.zero;
 		swordGO.transform.localRotation = Quaternion.identity;
@@ -111,5 +117,6 @@ public class Sword : MonoBehaviour
 		swordGO.transform.localRotation = Quaternion.identity;
 		swordGO.transform.localScale = Vector3.one;
 		swordState = SwordState.MOVING;
+		swordCollider.enabled = true;
 	}
 }
