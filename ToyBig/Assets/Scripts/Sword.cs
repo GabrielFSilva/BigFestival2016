@@ -10,8 +10,16 @@ public class Sword : MonoBehaviour
 	public GameObject swordGO;
 
 	public Vector3 direction;
-	public bool isMoving = false;
 	public float swordSpeed = 4f;
+
+	public SwordState swordState = SwordState.IDLE;
+	public enum SwordState
+	{
+		IDLE,
+		ON_HOLD,
+		MOVING,
+		FALLING
+	}
 	void Start ()
 	{
 		if (swordGO == null)
@@ -19,7 +27,7 @@ public class Sword : MonoBehaviour
 	}
 	void Update ()
 	{
-		if (isMoving) 
+		if (swordState == SwordState.MOVING) 
 		{
 			swordGO.transform.localPosition += direction * swordSpeed * Time.deltaTime;
 			if (Mathf.Abs (direction.z) > 0.2f) 
@@ -29,14 +37,22 @@ public class Sword : MonoBehaviour
 				swordGO.transform.localRotation = Quaternion.Euler (swordGO.transform.localRotation.eulerAngles +
 					(Vector3.forward * direction.x * -400f * Time.deltaTime));
 		}
-
+		else if (swordState == SwordState.FALLING)
+			swordGO.transform.localPosition += Vector3.down * Time.deltaTime * swordSpeed;
+		else if (swordState == SwordState.IDLE)
+		{
+			if (!PlayerMovimentManager.HasWallInPosition (swordGO.transform.localPosition + Vector3.up * -0.2f, 0.1f) 
+				&& !PlayerMovimentManager.HasStairInPosition (swordGO.transform.localPosition + Vector3.up * -0.2f, 0.1f))
+				swordState = SwordState.FALLING;
+		}	
 		if (Vector3.Distance (swordGO.transform.localPosition, swordsContainer.transform.localPosition) > 100f)
 			OnSwordLeaveWorld (this);
 	}
 	void OnCollisionEnter(Collision p_collision)
 	{
-		if (!isMoving)
+		if (swordState == SwordState.IDLE || swordState == SwordState.ON_HOLD)
 			return;
+		
 		if (p_collision.gameObject.name == "Player")
 			return;
 		else if (p_collision.gameObject.tag == "Enemy") 
@@ -44,12 +60,21 @@ public class Sword : MonoBehaviour
 			DropSword (p_collision.gameObject.transform.position);
 			OnSwordHitEnemy (this, p_collision.gameObject.GetComponent<Enemy> ());
 		}
-		else
+		else if (swordState == SwordState.MOVING)
 			DropSword (p_collision.gameObject);
+		else
+		{
+			swordState = SwordState.IDLE;
+			swordGO.transform.localRotation = Quaternion.identity;
+			if (p_collision.gameObject.tag == "Stair")
+				swordGO.transform.localPosition = p_collision.transform.position + (Vector3.up * 0.6f);
+			else
+				swordGO.transform.localPosition = p_collision.transform.position;
+		}	
 	}
 	public void DropSword(GameObject p_hit)
 	{
-		isMoving = false;
+		swordState = SwordState.IDLE;
 		swordGO.transform.localRotation = Quaternion.identity;
 		Vector3 __tempPos = swordGO.transform.localPosition - (direction * swordSpeed * Time.deltaTime);
 		swordGO.transform.localPosition = new Vector3 (Mathf.Round (__tempPos.x), 
@@ -57,16 +82,20 @@ public class Sword : MonoBehaviour
 	
 		if (p_hit.tag == "Stair")
 			swordGO.transform.localPosition += Vector3.up * 0.6f;
+		else if (!PlayerMovimentManager.HasWallInPosition (swordGO.transform.localPosition
+		         + Vector3.up * -0.2f, 0.1f))
+			swordState = SwordState.FALLING;
 	}
 	public void DropSword(Vector3 p_enemyPosition)
 	{
-		isMoving = false;
+		swordState = SwordState.IDLE;
 		swordGO.transform.localRotation = Quaternion.identity;
 		swordGO.transform.localPosition = new Vector3 (Mathf.Round (p_enemyPosition.x), 
 			Mathf.Floor (p_enemyPosition.y), Mathf.Round (p_enemyPosition.z));
 	}
 	public void PlaceSwordOnPlayerHand(Transform p_playerHand)
 	{
+		swordState = SwordState.ON_HOLD;
 		swordGO.transform.parent = p_playerHand;
 		swordGO.transform.localPosition = Vector3.zero;
 		swordGO.transform.localRotation = Quaternion.identity;
@@ -81,6 +110,6 @@ public class Sword : MonoBehaviour
 		swordGO.transform.parent = swordsContainer.transform;
 		swordGO.transform.localRotation = Quaternion.identity;
 		swordGO.transform.localScale = Vector3.one;
-		isMoving = true;
+		swordState = SwordState.MOVING;
 	}
 }

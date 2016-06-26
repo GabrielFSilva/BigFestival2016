@@ -12,11 +12,14 @@ public class Elevator : MonoBehaviour
 	public float moveTimerCount = 0f;
 	public bool isMoving = false;
 
+	public bool isMovingFoward = false;
 	void Start () 
 	{
 		if (elevatorGO == null)
 			elevatorGO = gameObject;
-		
+
+		isMovingFoward = false;
+
 		startPosition = elevatorGO.transform.localPosition;
 		moveTimer = Vector3.Magnitude(endPosition - startPosition);
 	}
@@ -26,8 +29,12 @@ public class Elevator : MonoBehaviour
 		if (isMoving) 
 		{
 			moveTimerCount += Time.deltaTime * GameSceneManager.gameSpeed;
-			elevatorGO.transform.localPosition = Vector3.Lerp (startPosition, 
-				endPosition, moveTimerCount / moveTimer);
+			if (isMovingFoward)
+				elevatorGO.transform.localPosition = Vector3.Lerp (startPosition, 
+					endPosition, moveTimerCount / moveTimer);
+			else
+				elevatorGO.transform.localPosition = Vector3.Lerp (endPosition, 
+					startPosition, moveTimerCount / moveTimer);
 			if (moveTimerCount >= moveTimer)
 				isMoving = false;
 		}
@@ -35,6 +42,7 @@ public class Elevator : MonoBehaviour
 
 	public void StartMoving()
 	{
+		isMovingFoward = !isMovingFoward;
 		isMoving = true;
 		moveTimerCount = 0f;
 	}

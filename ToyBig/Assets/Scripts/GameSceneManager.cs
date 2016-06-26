@@ -42,7 +42,7 @@ public class GameSceneManager : MonoBehaviour
 		{
 			__dyn.dynamitesContainer = dynamitesContainer;
 			__dyn.OnDynamiteExplosionHitPlayer += (Dynamite obj) =>
-				SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+				RestartLevel ();
 			__dyn.OnDynamiteExplosionHitWall += (Dynamite arg1, Wall arg2) =>
 			{
 				walls.Remove(arg2);
@@ -72,5 +72,10 @@ public class GameSceneManager : MonoBehaviour
 		foreach (MovingPlatform __plat in platforms) 
 			__plat.PlayTurn();
 		player.PlayTurn ();
+	}
+
+	public void RestartLevel()
+	{
+		SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 	}
 }

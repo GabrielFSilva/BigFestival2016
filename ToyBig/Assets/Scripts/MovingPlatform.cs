@@ -10,7 +10,7 @@ public class MovingPlatform : MonoBehaviour
 	public float moveTweenCount = 0f;
 	public Vector3 moveStartPosition;
 	public Vector3 moveEndPosition;
-
+	public bool skipTurn = false;
 	void Update () 
 	{
 		if (isMoving) 
@@ -20,6 +20,7 @@ public class MovingPlatform : MonoBehaviour
 	}
 	public void PlayTurn()
 	{
+		
 		Collider[] __collisions = Physics.OverlapSphere (platformGO.transform.localPosition 
 			+ PlatformDirNormalized() - (Vector3.up * 0.5f), 0.2f);
 		
@@ -30,6 +31,11 @@ public class MovingPlatform : MonoBehaviour
 		if (__count > 0)
 			InvertDirection ();
 		
+		if (skipTurn) 
+		{
+			skipTurn = false;
+			return;
+		}
 		isMoving = true;
 		SetPlatformDestination ();
 	}
@@ -42,12 +48,12 @@ public class MovingPlatform : MonoBehaviour
 
 
 	}
-
 	private void InvertDirection()
 	{
 		direction += 2;
 		if ((int)direction >= 4)
 			direction -= 4;
+		skipTurn = true;
 	}
 	public Vector3 PlatformDirNormalized()
 	{
