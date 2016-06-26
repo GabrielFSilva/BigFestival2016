@@ -22,6 +22,11 @@ public class GameSceneManager : MonoBehaviour
 	void Start () 
 	{
 		gameSpeed = gameSpeedLocal;
+		swords = new List<Sword> (GameObject.FindObjectsOfType<Sword> ());
+		dynamites = new List<Dynamite> (GameObject.FindObjectsOfType<Dynamite> ());
+		enemies = new List<Enemy> (GameObject.FindObjectsOfType<Enemy> ());
+		walls = new List<Wall> (GameObject.FindObjectsOfType<Wall> ());
+		platforms = new List<MovingPlatform> (GameObject.FindObjectsOfType<MovingPlatform> ());
 		foreach (Sword __sword in swords) 
 		{
 			__sword.swordsContainer = swordsContainer;
