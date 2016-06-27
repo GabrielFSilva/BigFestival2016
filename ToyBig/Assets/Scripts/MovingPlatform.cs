@@ -10,13 +10,15 @@ public class MovingPlatform : MonoBehaviour
 	public float moveTweenCount = 0f;
 	public Vector3 moveStartPosition;
 	public Vector3 moveEndPosition;
-	public bool skipTurn = false;
+	public int  skipTurn;
+	void Start()
+	{
+		skipTurn = 0;
+	}
 	void Update () 
 	{
 		if (isMoving) 
-		{
 			UpdatePlatformPosition ();
-		}
 	}
 	public void PlayTurn()
 	{
@@ -31,9 +33,9 @@ public class MovingPlatform : MonoBehaviour
 		if (__count > 0)
 			InvertDirection ();
 		
-		if (skipTurn) 
+		if (skipTurn > 0) 
 		{
-			skipTurn = false;
+			skipTurn --;
 			return;
 		}
 		isMoving = true;
@@ -53,7 +55,7 @@ public class MovingPlatform : MonoBehaviour
 		direction += 2;
 		if ((int)direction >= 4)
 			direction -= 4;
-		skipTurn = true;
+		skipTurn = 3;
 	}
 	public Vector3 PlatformDirNormalized()
 	{

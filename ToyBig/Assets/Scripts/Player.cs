@@ -135,6 +135,7 @@ public class Player : MonoBehaviour
 	}
 	private void CheckLanding(Collision p_coll)
 	{
+		Debug.Log (p_coll.gameObject.name);
 		if (p_coll.gameObject.tag == "Stair") 
 		{
 			playerGO.transform.position = p_coll.transform.position + (Vector3.up * 0.5f);
@@ -145,7 +146,7 @@ public class Player : MonoBehaviour
 		}
 		else if (p_coll.gameObject.tag == "Elevator")
 		{
-			playerGO.transform.position = p_coll.transform.position + (Vector3.one * 2.0f);
+			playerGO.transform.position = p_coll.transform.position + (Vector3.up * 2.0f);
 			status = PlayerStatus.IDLE_BUFFER;
 			idleBuffer = true;
 			jumpBuffer = false;
@@ -170,6 +171,7 @@ public class Player : MonoBehaviour
 	{
 		rightButtonPressed = true;
 		RightButtonPressed ();
+		RightButtonDown();
 	}
 	public void DirectionButtonUp()
 	{
@@ -280,7 +282,6 @@ public class Player : MonoBehaviour
 		foreach (Collider __coll in __collisions)
 			if (__coll.tag == "MovingPlatform") 
 			{
-				Debug.Log ("HEre");
 				platformGO = __coll.GetComponent<MovingPlatform>();
 				status = PlayerStatus.TAKING_PLATFORM;
 			}
